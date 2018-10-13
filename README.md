@@ -15,7 +15,7 @@ gopdf is a simple library for generating PDF document written in Go lang.
 
 ## Installation
  ```
- go get -u github.com/signintech/gopdf
+ go get -u github.com/YanceYangPeng/goypdf
  ```
 
 
@@ -26,7 +26,7 @@ gopdf is a simple library for generating PDF document written in Go lang.
 package main
 import (
 	"log"
-	"github.com/signintech/gopdf"
+	gopdf "github.com/YanceYangPeng/goypdf"
 )
 
 func main() {
