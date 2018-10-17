@@ -495,18 +495,19 @@ func (gp *GoPdf) CellWithTextWrap(rect *Rect,text string,maxLineNum int,opt Cell
 		gp.CellWithOption(rect, text,opt)
 	} else if lineNum < maxLineNum {
 		ns := ""
-		nReact := rect
+		nReact := Rect{}
+		nReact = *rect
 		nReact.H = float64(maxLineNum-lineNum)*rect.H/2
 		for i:=1 ; i<=maxLineNum+1 ; i++ {
 			if i == 1 {
 				opt.Border = Left | Top | Right
 				//opt.Align = Bottom | Center
-				gp.CellWithOption(nReact, "", opt)
+				gp.CellWithOption(&nReact, "", opt)
 			} else if i == maxLineNum+1 {
 				gp.SetX(x) ; gp.SetY(gp.GetY() + rect.H)
 				opt.Border = Left | Bottom | Right
 				//opt.Align = Top | Center
-				gp.CellWithOption(nReact, "", opt)
+				gp.CellWithOption(&nReact, "", opt)
 			} else {
 				if i == 2 {
 					gp.SetX(x) ; gp.SetY(gp.GetY() + nReact.H)
