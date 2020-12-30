@@ -10,8 +10,8 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 )
 
 const subsetFont = "SubsetFont"
@@ -483,40 +483,44 @@ func (gp *GoPdf) Text(text string) error {
 //830-clock-yance
 //CellWithTextWrap : cell自动换行函数
 //maxLineNum : 同行最大基础字行数  yHeight : 单元格高度
-func (gp *GoPdf) CellWithTextWrap(rect *Rect,text string,maxLineNum int,opt CellOption) (yHeight float64,err error) {
-	textWith,_ := gp.MeasureTextWidth(text)
-	lineNum := int(textWith * 100)/int(rect.W * 100)
-	if int(textWith * 100)%int(rect.W * 100) != 0 {
+func (gp *GoPdf) CellWithTextWrap(rect *Rect, text string, maxLineNum int, opt CellOption) (yHeight float64, err error) {
+	rowWith, textWith, _ := gp.MeasureTextWidth2(text, rect)
+	lineNum := int(textWith*100) / int(rowWith*100)
+	if int(textWith*100)%int(rowWith*100) != 0 {
 		lineNum = lineNum + 1
 	}
-	x := gp.GetX();y := gp.GetY()
+	x := gp.GetX()
+	y := gp.GetY()
 	if lineNum == 0 || lineNum == 1 {
 		rect.H = rect.H * float64(maxLineNum)
-		gp.CellWithOption(rect, text,opt)
+		gp.CellWithOption(rect, text, opt)
 	} else if lineNum < maxLineNum {
 		ns := ""
 		nReact := Rect{}
 		nReact = *rect
-		nReact.H = float64(maxLineNum-lineNum)*rect.H/2
-		for i:=1 ; i<=maxLineNum+1 ; i++ {
+		nReact.H = float64(maxLineNum-lineNum) * rect.H / 2
+		for i := 1; i <= maxLineNum+1; i++ {
 			if i == 1 {
 				opt.Border = Left | Top | Right
 				//opt.Align = Bottom | Center
 				gp.CellWithOption(&nReact, "", opt)
 			} else if i == maxLineNum+1 {
-				gp.SetX(x) ; gp.SetY(gp.GetY() + rect.H)
+				gp.SetX(x)
+				gp.SetY(gp.GetY() + rect.H)
 				opt.Border = Left | Bottom | Right
 				//opt.Align = Top | Center
 				gp.CellWithOption(&nReact, "", opt)
 			} else {
 				if i == 2 {
-					gp.SetX(x) ; gp.SetY(gp.GetY() + nReact.H)
+					gp.SetX(x)
+					gp.SetY(gp.GetY() + nReact.H)
 				} else {
-					gp.SetX(x) ; gp.SetY(gp.GetY() + rect.H)
+					gp.SetX(x)
+					gp.SetY(gp.GetY() + rect.H)
 				}
-				ns,text,err = gp.GetTextByWidth(text,rect.W)
+				ns, text, err = gp.GetTextByWidth(text, rect.W)
 				if err != nil {
-					return yHeight,err
+					return yHeight, err
 				}
 				opt.Border = Left | Right
 				gp.CellWithOption(rect, ns, opt)
@@ -524,42 +528,45 @@ func (gp *GoPdf) CellWithTextWrap(rect *Rect,text string,maxLineNum int,opt Cell
 		}
 	} else if lineNum == maxLineNum {
 		ns := ""
-		for i:=1 ; i<=lineNum ; i++ {
-			ns,text,err = gp.GetTextByWidth(text,rect.W)
+		for i := 1; i <= lineNum; i++ {
+			ns, text, err = gp.GetTextByWidth(text, rect.W)
 			if err != nil {
-				return yHeight,err
+				return yHeight, err
 			}
 			if i == 1 {
 				opt.Border = Left | Top | Right
 				//opt.Align = Bottom | Center
 				gp.CellWithOption(rect, ns, opt)
 			} else if i == lineNum {
-				gp.SetX(x) ; gp.SetY(gp.GetY() + rect.H)
+				gp.SetX(x)
+				gp.SetY(gp.GetY() + rect.H)
 				opt.Border = Left | Bottom | Right
 				//opt.Align = Top | Center
 				gp.CellWithOption(rect, ns, opt)
 			} else {
-				gp.SetX(x) ; gp.SetY(gp.GetY() + rect.H)
+				gp.SetX(x)
+				gp.SetY(gp.GetY() + rect.H)
 				opt.Border = Left | Right
 				gp.CellWithOption(rect, ns, opt)
 			}
 		}
 	} else {
-		return yHeight,errors.New("处理有误")
+		return yHeight, errors.New("处理有误")
 	}
-	gp.SetX(x + rect.W);gp.SetY(y)
-	yHeight = float64(lineNum) * rect.H
-	return yHeight,err
+	gp.SetX(x + rect.W)
+	gp.SetY(y)
+	yHeight = float64(maxLineNum) * rect.H
+	return yHeight, err
 }
 
 //830-clock-yance
 //从原string获取同宽度string
-func (gp *GoPdf) GetTextByWidth(text string ,width float64) (newT string ,oldT string,err error) {
+func (gp *GoPdf) GetTextByWidth(text string, width float64) (newT string, oldT string, err error) {
 	s := strings.Split(text, "")
-	for _,item := range s {
-		if w,err := gp.MeasureTextWidth(newT + item); w >= width || err != nil {
-			oldT = strings.Replace(text,newT,"",1)
-			return newT,oldT,err
+	for _, item := range s {
+		if _, w, err := gp.MeasureTextWidth2(newT+item, nil); w >= width || err != nil {
+			oldT = strings.Replace(text, newT, "", 1)
+			return newT, oldT, err
 		} else {
 			newT += item
 		}
@@ -571,19 +578,25 @@ func (gp *GoPdf) GetTextByWidth(text string ,width float64) (newT string ,oldT s
 type (
 	PdfRow struct {
 		Rectangle Rect
-		Text string
+		Text      string
 	}
 )
 
 //830-clock-yance
 //获取同行数据最大字行数
-func (gp *GoPdf) GetMaxLineNum(pdfRows []PdfRow) (maxLineNum int,err error) {
+func (gp *GoPdf) GetMaxLineNum(pdfRows []PdfRow) (maxLineNum int, err error) {
 	maxLineNum = 1
-	for _,row := range pdfRows {
-		textWith,_ := gp.MeasureTextWidth(row.Text)
-		temLineNum := int(textWith * 100)/int(row.Rectangle.W * 100)
-		if int(textWith * 100)%int(row.Rectangle.W * 100) != 0 {
-			temLineNum = temLineNum + 1
+	for _, row := range pdfRows {
+		temLineNum, newT := 1, ""
+		s := strings.Split(row.Text, "")
+		for _, item := range s {
+			rw, w, err := gp.MeasureTextWidth2(newT+item, &row.Rectangle)
+			if w >= rw || err != nil {
+				newT = item
+				temLineNum = temLineNum + 1
+			} else {
+				newT += item
+			}
 		}
 		if maxLineNum < temLineNum {
 			maxLineNum = temLineNum
@@ -592,9 +605,24 @@ func (gp *GoPdf) GetMaxLineNum(pdfRows []PdfRow) (maxLineNum int,err error) {
 	return maxLineNum, err
 }
 
+//MeasureTextWidth : measure Width of text (use current font)
+func (gp *GoPdf) MeasureTextWidth2(text string, rectangle *Rect) (float64, float64, error) {
+
+	err := gp.curr.Font_ISubset.AddChars(text) //AddChars for create CharacterToGlyphIndex
+	if err != nil {
+		return 0, 0, err
+	}
+
+	cellWidthPdfUnit, _, textWidthPdfUnit, err := createContent(gp.curr.Font_ISubset, text, gp.curr.Font_Size, rectangle)
+	if err != nil {
+		return 0, 0, err
+	}
+	return cellWidthPdfUnit, textWidthPdfUnit, nil
+}
+
 //830-clock-yance
 //获取page参数
-func (gp *GoPdf) GetPageConfig() (Config) {
+func (gp *GoPdf) GetPageConfig() Config {
 	return gp.config
 }
 
